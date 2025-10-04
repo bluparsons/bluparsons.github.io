@@ -1,91 +1,147 @@
 <!doctype html>
 <html lang="en">
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>bluparsons — CV Assistant</title>
-<style>
-  body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:2rem;max-width:880px}
-  h1{margin:.2rem 0 1rem}
-  #out{white-space:pre-wrap;border:1px solid #ddd;padding:1rem;border-radius:12px;min-height:140px;margin:.75rem 0}
-  input,textarea,button{font:inherit}
-  input,textarea{width:100%;padding:.6rem;border:1px solid #ccc;border-radius:10px}
-  button{padding:.6rem 1rem;border-radius:10px;border:1px solid #ccc;cursor:pointer}
-  .src{font-size:.9rem;opacity:.85;border-left:3px solid #eee;padding-left:.6rem;margin:.5rem 0}
-</style>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>bluparsons — CV Assistant</title>
+  <meta name="description" content="Ask questions about my background and experience." />
+  <style>
+    :root { --bg:#fff; --fg:#111; --muted:#666; --line:#e5e5e5; --card:#fafafa; }
+    @media (prefers-color-scheme: dark){
+      :root { --bg:#0b0b0b; --fg:#f2f2f2; --muted:#b9b9b9; --line:#2a2a2a; --card:#151515; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    .wrap { max-width:900px; margin:0 auto; padding:24px; }
+    h1 { margin:0 0 .5rem; font-size:clamp(1.6rem, 2.5vw, 2.2rem); }
+    p.sub { margin:.25rem 0 1rem; color:var(--muted); }
+    .chat { border:1px solid var(--line); border-radius:14px; padding:12px; background:var(--card); min-height:240px; }
+    .row { display:flex; gap:10px; margin:10px 0; align-items:flex-start; }
+    .me   .bubble { background:#4c7ef3; color:#fff; }
+    .ai   .bubble { background:var(--bg); border:1px solid var(--line); }
+    .bubble { padding:10px 12px; border-radius:12px; max-width:75%; white-space:pre-wrap; }
+    .who { font-size:.8rem; color:var(--muted); margin-bottom:4px; }
+    .controls { display:flex; gap:8px; margin-top:12px; }
+    textarea { flex:1; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--fg); min-height:70px; resize:vertical; }
+    button { padding:.6rem 1rem; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--fg); cursor:pointer; }
+    button[disabled]{ opacity:.6; cursor:not-allowed; }
+    .status { margin-top:8px; color:var(--muted); font-size:.9rem; }
+  </style>
+</head>
 <body>
-<h1>CV Assistant</h1>
-<p>Ask about my background, experience, and skills.</p>
-<input id="q" placeholder="e.g. What RAG projects have you built?" />
-<p><button id="ask">Ask</button></p>
-<div id="out">I’ll answer here.</div>
-<div id="sources"></div>
+  <main class="wrap">
+    <h1>CV Assistant</h1>
+    <p class="sub">Ask about my background, projects, and skills.</p>
 
-<script src="https://unpkg.com/flexsearch@0.7.31/dist/flexsearch.bundle.js"></script>
-<script>
-const API = "https://worker.mail-f3b.workers.dev/api/chat"; // ← replace after Step 3
-let KB = [], index;
+    <div id="chat" class="chat" aria-live="polite" aria-busy="false"></div>
 
-// Load CV and build a small search index
-(async function init(){
-  KB = await (await fetch("cv.json", {cache:"no-store"})).json();
-  index = new FlexSearch.Document({
-    tokenize: "forward",
-    document: { id: "id", index: ["title","text"], store: ["title","text"] }
-  });
-  KB.forEach(doc => index.add(doc));
-})();
+    <div class="controls">
+      <textarea id="q" placeholder="e.g. What AI/RAG projects have you shipped? (Shift+Enter for newline)"></textarea>
+      <button id="send">Send</button>
+      <button id="clear" title="Clear conversation">Clear</button>
+    </div>
+    <div id="status" class="status"></div>
+  </main>
 
-function topMatches(query, k=5){
-  const hits = index.search(query, { enrich: true, limit: k });
-  // Flatten and dedupe by id
-  const docs = [];
-  const seen = new Set();
-  for (const h of hits) for (const r of h.result) {
-    if (!seen.has(r.doc.id)) { seen.add(r.doc.id); docs.push(r.doc); }
-  }
-  return docs.slice(0,k);
-}
+  <script>
+    // --- Config: your Worker endpoint ---
+    const API = "https://worker.mail-f3b.workers.dev/api/chat";
 
-async function ask(){
-  const q = document.querySelector("#q").value.trim();
-  if(!q){ return; }
-  const ctx = topMatches(q, 6);
+    // Conversation state
+    const messages = [
+      { role: "system", content: "You are a concise assistant for bluparsons' CV. Answer using the user's public background. If unsure, say so briefly." }
+    ];
 
-  // Simple guard: if no context found, tell the model to admit it
-  const system = `
-You are a CV assistant for "bluparsons".
-Answer ONLY using the provided context snippets. If the answer is not present, say briefly you don't have that information.
-Format clearly. Keep to 120 words unless asked for more. Include a short bullet list when useful.`;
+    // UI refs
+    const chat   = document.getElementById('chat');
+    const input  = document.getElementById('q');
+    const send   = document.getElementById('send');
+    const clearB = document.getElementById('clear');
+    const status = document.getElementById('status');
 
-  const messages = [
-    { role: "system", content: system },
-    { role: "user", content: `Question: ${q}\n\nContext:\n` +
-        ctx.map((d,i)=>`[${i+1}] ${d.title}: ${d.text}`).join("\n") }
-  ];
+    function addRow(who, text){
+      const row = document.createElement('div');
+      row.className = 'row ' + (who === 'You' ? 'me' : 'ai');
 
-  document.querySelector("#out").textContent = "Thinking…";
-  document.querySelector("#sources").innerHTML = "";
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
 
-  try{
-    const res = await fetch(API, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ messages })
+      const label = document.createElement('div');
+      label.className = 'who';
+      label.textContent = who;
+
+      const wrap = document.createElement('div');
+      wrap.appendChild(label);
+      wrap.appendChild(bubble);
+
+      row.appendChild(wrap);
+      chat.appendChild(row);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function ask(){
+      const q = input.value.trim();
+      if(!q) return;
+
+      // UI lock
+      send.disabled = true;
+      input.disabled = true;
+      status.textContent = "Thinking…";
+      chat.setAttribute('aria-busy', 'true');
+
+      // Render user message
+      addRow('You', q);
+      messages.push({ role: "user", content: q });
+
+      try{
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages })
+        });
+
+        if(!res.ok){
+          const err = await res.text().catch(()=>res.statusText);
+          throw new Error(`${res.status} ${res.statusText}: ${err}`);
+        }
+
+        const data = await res.json();
+        const text = (data && data.text) ? String(data.text) : "No response.";
+        messages.push({ role: "assistant", content: text });
+        addRow('AI', text);
+
+      } catch (e){
+        const msg = "Error contacting the AI endpoint. " + (e.message || e);
+        addRow('AI', msg);
+      } finally {
+        // UI unlock
+        send.disabled = false;
+        input.disabled = false;
+        status.textContent = "";
+        chat.setAttribute('aria-busy', 'false');
+        input.value = "";
+        input.focus();
+      }
+    }
+
+    // Events
+    send.addEventListener('click', ask);
+    clearB.addEventListener('click', () => {
+      // Keep the system prompt, clear the rest
+      for(let i = messages.length - 1; i >= 0; i--){
+        if(messages[i].role !== 'system') messages.splice(i, 1);
+      }
+      chat.innerHTML = "";
+      status.textContent = "Conversation cleared.";
+      input.focus();
     });
-    const data = await res.json();
-    document.querySelector("#out").textContent = data.text || "No response.";
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
+    });
 
-    // Show sources used
-    const srcHtml = ctx.map((d,i)=>`<div class="src"><strong>[${i+1}] ${d.title}</strong><br>${d.text}</div>`).join("");
-    document.querySelector("#sources").innerHTML = "<h3>Sources</h3>" + srcHtml;
-
-  } catch (e){
-    document.querySelector("#out").textContent = "Error contacting the AI endpoint. Check your Worker URL.";
-  }
-}
-
-document.querySelector("#ask").onclick = ask;
-document.querySelector("#q").addEventListener("keydown", e => e.key === "Enter" && ask());
-</script>
+    // Optional: welcome message
+    addRow('AI', "Hi! Ask me about my experience, projects, skills, or education.");
+  </script>
 </body>
 </html>
