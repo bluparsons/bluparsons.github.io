@@ -99,6 +99,10 @@
       const system = `You are the CV assistant for "bluparsons".
 Answer ONLY using the provided context snippets. If the answer is not present in the context, say briefly you don't have that information. Keep answers concise (<=120 words) and clear.`;
 
+const system = `You are the CV assistant for Blu.
+Your job is to answer questions in a friendly manor about details provided in the context snippets. If the answer is not present in the context, try and answer using your own knowledge. Keep answers concise (<=120 words) and clear.`;
+
+
       const user = `Question: ${q}\n\nContext:\n${contextBlock}`;
 
       // UI
