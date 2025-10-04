@@ -7,52 +7,70 @@
   <meta name="description" content="Ask questions about my background and experience." />
   <style>
     :root { --bg:#fff; --fg:#111; --muted:#666; --line:#e5e5e5; --card:#fafafa; }
-    @media (prefers-color-scheme: dark){
-      :root { --bg:#0b0b0b; --fg:#f2f2f2; --muted:#b9b9b9; --line:#2a2a2a; --card:#151515; }
-    }
-    * { box-sizing: border-box; }
-    body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
-    .wrap { max-width:900px; margin:0 auto; padding:24px; }
-    h1 { margin:0 0 .5rem; font-size:clamp(1.6rem, 2.5vw, 2.2rem); }
-    p.sub { margin:.25rem 0 1rem; color:var(--muted); }
-    .chat { border:1px solid var(--line); border-radius:14px; padding:12px; background:var(--card); min-height:240px; }
-    .row { display:flex; gap:10px; margin:10px 0; align-items:flex-start; }
-    .me   .bubble { background:#4c7ef3; color:#fff; }
-    .ai   .bubble { background:var(--bg); border:1px solid var(--line); }
-    .bubble { padding:10px 12px; border-radius:12px; max-width:75%; white-space:pre-wrap; }
-    .who { font-size:.8rem; color:var(--muted); margin-bottom:4px; }
-    .controls { display:flex; gap:8px; margin-top:12px; }
-    textarea { flex:1; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--fg); min-height:70px; resize:vertical; }
-    button { padding:.6rem 1rem; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--fg); cursor:pointer; }
-    button[disabled]{ opacity:.6; cursor:not-allowed; }
-    .status { margin-top:8px; color:var(--muted); font-size:.9rem; }
+    @media (prefers-color-scheme: dark){ :root { --bg:#0b0b0b; --fg:#f2f2f2; --muted:#b9b9b9; --line:#2a2a2a; --card:#151515; } }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+    .wrap{max-width:900px;margin:0 auto;padding:24px}
+    h1{margin:0 0 .5rem;font-size:clamp(1.6rem,2.5vw,2.2rem)}
+    p.sub{margin:.25rem 0 1rem;color:var(--muted)}
+    .chat{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--card);min-height:240px}
+    .row{display:flex;gap:10px;margin:10px 0;align-items:flex-start}
+    .me .bubble{background:#4c7ef3;color:#fff}
+    .ai .bubble{background:var(--bg);border:1px solid var(--line)}
+    .bubble{padding:10px 12px;border-radius:12px;max-width:75%;white-space:pre-wrap}
+    .who{font-size:.8rem;color:var(--muted);margin-bottom:4px}
+    .controls{display:flex;gap:8px;margin-top:12px}
+    textarea{flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);min-height:70px;resize:vertical}
+    button{padding:.6rem 1rem;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    .status{margin-top:8px;color:var(--muted);font-size:.9rem}
   </style>
 </head>
 <body>
   <main class="wrap">
     <h1>CV Assistant</h1>
-    <p class="sub">Ask me about my background, projects, and skills.</p>
+    <p class="sub">Answers are generated using only the CV snippets below.</p>
 
     <div id="chat" class="chat" aria-live="polite" aria-busy="false"></div>
 
     <div class="controls">
-      <textarea id="q" placeholder="e.g. What AI/RAG projects have you shipped? (Shift+Enter for newline)"></textarea>
+      <textarea id="q" placeholder="e.g. What RAG or AI projects have you shipped? (Shift+Enter for newline)"></textarea>
       <button id="send">Send</button>
       <button id="clear" title="Clear conversation">Clear</button>
     </div>
     <div id="status" class="status"></div>
   </main>
 
+  <!-- tiny client-side search -->
+  <script src="https://unpkg.com/flexsearch@0.7.31/dist/flexsearch.bundle.js"></script>
   <script>
-    // --- Config: your Worker endpoint ---
-    const API = "https://worker2.mail-f3b.workers.dev/api/chat";
+    const API = "https://worker2.mail-f3b.workers.dev/api/chat"; // your Worker
 
-    // Conversation state
-    const messages = [
-      { role: "system", content: "You are a concise assistant for bluparsons' CV. Answer using the user's public background. If unsure, say so briefly." }
-    ];
+    // ---- Load CV and build a small index ----
+    let KB = [], index;
+    (async function init(){
+      try {
+        const res = await fetch("cv.json", { cache: "no-store" });
+        KB = await res.json();
+      } catch { KB = []; }
+      index = new FlexSearch.Document({
+        tokenize: "forward",
+        document: { id: "id", index: ["title","text"], store: ["title","text"] }
+      });
+      (KB || []).forEach(doc => index.add(doc));
+    })();
 
-    // UI refs
+    function topMatches(query, k=6){
+      if(!index) return [];
+      const hits = index.search(query, { enrich: true, limit: k });
+      const seen = new Set(), out = [];
+      for(const h of hits) for(const r of h.result){
+        if(!seen.has(r.doc.id)){ seen.add(r.doc.id); out.push(r.doc); }
+      }
+      return out.slice(0,k);
+    }
+
+    // ---- UI helpers ----
     const chat   = document.getElementById('chat');
     const input  = document.getElementById('q');
     const send   = document.getElementById('send');
@@ -62,86 +80,54 @@
     function addRow(who, text){
       const row = document.createElement('div');
       row.className = 'row ' + (who === 'You' ? 'me' : 'ai');
-
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
-      bubble.textContent = text;
-
-      const label = document.createElement('div');
-      label.className = 'who';
-      label.textContent = who;
-
-      const wrap = document.createElement('div');
-      wrap.appendChild(label);
-      wrap.appendChild(bubble);
-
-      row.appendChild(wrap);
-      chat.appendChild(row);
-      chat.scrollTop = chat.scrollHeight;
+      const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.textContent = text;
+      const label = document.createElement('div'); label.className = 'who'; label.textContent = who;
+      const wrap = document.createElement('div'); wrap.appendChild(label); wrap.appendChild(bubble);
+      row.appendChild(wrap); chat.appendChild(row); chat.scrollTop = chat.scrollHeight;
     }
 
     async function ask(){
-      const q = input.value.trim();
-      if(!q) return;
+      const q = input.value.trim(); if(!q) return;
 
-      // UI lock
-      send.disabled = true;
-      input.disabled = true;
-      status.textContent = "Thinking…";
-      chat.setAttribute('aria-busy', 'true');
+      // Find context from cv.json
+      const ctx = topMatches(q, 6);
+      const contextBlock = ctx.length
+        ? ctx.map((d,i)=>`[${i+1}] ${d.title}: ${d.text}`).join("\n")
+        : "(no matching snippets found)";
 
-      // Render user message
+      // Build strict “use-context-only” prompt
+      const system = `You are the CV assistant for "bluparsons".
+Answer ONLY using the provided context snippets. If the answer is not present in the context, say briefly you don't have that information. Keep answers concise (<=120 words) and clear.`;
+
+      const user = `Question: ${q}\n\nContext:\n${contextBlock}`;
+
+      // UI
+      send.disabled = true; input.disabled = true; status.textContent = "Thinking…"; chat.setAttribute('aria-busy','true');
       addRow('You', q);
-      messages.push({ role: "user", content: q });
 
       try{
         const res = await fetch(API, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages })
+          body: JSON.stringify({ messages: [{ role:"system", content: system }, { role:"user", content: user }] })
         });
-
-        if(!res.ok){
-          const err = await res.text().catch(()=>res.statusText);
-          throw new Error(`${res.status} ${res.statusText}: ${err}`);
-        }
-
+        if(!res.ok){ throw new Error(await res.text()); }
         const data = await res.json();
-        const text = (data && data.text) ? String(data.text) : "No response.";
-        messages.push({ role: "assistant", content: text });
-        addRow('AI', text);
-
-      } catch (e){
-        const msg = "Error contacting the AI endpoint. " + (e.message || e);
-        addRow('AI', msg);
-      } finally {
-        // UI unlock
-        send.disabled = false;
-        input.disabled = false;
-        status.textContent = "";
-        chat.setAttribute('aria-busy', 'false');
-        input.value = "";
-        input.focus();
+        addRow('AI', data.text || "No response.");
+      }catch(e){
+        addRow('AI', "Error contacting the AI endpoint.");
+      }finally{
+        send.disabled = false; input.disabled = false; status.textContent = ""; chat.setAttribute('aria-busy','false');
+        input.value = ""; input.focus();
       }
     }
 
-    // Events
     send.addEventListener('click', ask);
-    clearB.addEventListener('click', () => {
-      // Keep the system prompt, clear the rest
-      for(let i = messages.length - 1; i >= 0; i--){
-        if(messages[i].role !== 'system') messages.splice(i, 1);
-      }
-      chat.innerHTML = "";
-      status.textContent = "Conversation cleared.";
-      input.focus();
-    });
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
-    });
+    clearB.addEventListener('click', () => { chat.innerHTML = ""; status.textContent = "Conversation cleared."; input.focus(); });
+    input.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); ask(); } });
 
-    // Optional: welcome message
-    addRow('AI', "Hi! Ask me about my experience, projects, skills, or education.");
+    // Welcome
+    addRow('AI', "Hi! Ask me about my experience, projects, skills, or education. I’ll answer using my CV only.");
   </script>
 </body>
 </html>
