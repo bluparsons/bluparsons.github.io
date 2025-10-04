@@ -1,0 +1,17 @@
+[
+  {
+    "id": "summary",
+    "title": "Professional Summary",
+    "text": "Data scientist with experience in Python, machine learning, and AI."
+  },
+  {
+    "id": "exp_1",
+    "title": "MI Manager",
+    "text": "Managed a team of 3 people. Stack: Microsoft Access, Microsoft Excel."
+  },
+  {
+    "id": "skills",
+    "title": "Skills",
+    "text": "Python, SQL, Teradata SQL, GitHub."
+  }
+]

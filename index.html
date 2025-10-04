@@ -1,25 +1,91 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>bluparsons</title>
-  <meta name="description" content="The homepage of Blu." />
-  <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    body { margin: 0; line-height: 1.6; }
-    .wrap { max-width: 720px; margin: 15vh auto; padding: 0 1rem; }
-    h1 { margin: 0 0 .5rem; font-size: 2.2rem; }
-    p { margin: 0; font-size: 1.1rem; opacity: .9; }
-    @media (prefers-color-scheme: dark) {
-      body { background: #0b0b0b; color: #f2f2f2; }
-    }
-  </style>
-</head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bluparsons — CV Assistant</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:2rem;max-width:880px}
+  h1{margin:.2rem 0 1rem}
+  #out{white-space:pre-wrap;border:1px solid #ddd;padding:1rem;border-radius:12px;min-height:140px;margin:.75rem 0}
+  input,textarea,button{font:inherit}
+  input,textarea{width:100%;padding:.6rem;border:1px solid #ccc;border-radius:10px}
+  button{padding:.6rem 1rem;border-radius:10px;border:1px solid #ccc;cursor:pointer}
+  .src{font-size:.9rem;opacity:.85;border-left:3px solid #eee;padding-left:.6rem;margin:.5rem 0}
+</style>
 <body>
-  <main class="wrap">
-    <h1>Blu Parsons</h1>
-    <p>The homepage of Blu.</p>
-  </main>
+<h1>CV Assistant</h1>
+<p>Ask about my background, experience, and skills.</p>
+<input id="q" placeholder="e.g. What RAG projects have you built?" />
+<p><button id="ask">Ask</button></p>
+<div id="out">I’ll answer here.</div>
+<div id="sources"></div>
+
+<script src="https://unpkg.com/flexsearch@0.7.31/dist/flexsearch.bundle.js"></script>
+<script>
+const API = "https://YOUR-WORKER.workers.dev/api/chat"; // ← replace after Step 3
+let KB = [], index;
+
+// Load CV and build a small search index
+(async function init(){
+  KB = await (await fetch("cv.json", {cache:"no-store"})).json();
+  index = new FlexSearch.Document({
+    tokenize: "forward",
+    document: { id: "id", index: ["title","text"], store: ["title","text"] }
+  });
+  KB.forEach(doc => index.add(doc));
+})();
+
+function topMatches(query, k=5){
+  const hits = index.search(query, { enrich: true, limit: k });
+  // Flatten and dedupe by id
+  const docs = [];
+  const seen = new Set();
+  for (const h of hits) for (const r of h.result) {
+    if (!seen.has(r.doc.id)) { seen.add(r.doc.id); docs.push(r.doc); }
+  }
+  return docs.slice(0,k);
+}
+
+async function ask(){
+  const q = document.querySelector("#q").value.trim();
+  if(!q){ return; }
+  const ctx = topMatches(q, 6);
+
+  // Simple guard: if no context found, tell the model to admit it
+  const system = `
+You are a CV assistant for "bluparsons".
+Answer ONLY using the provided context snippets. If the answer is not present, say briefly you don't have that information.
+Format clearly. Keep to 120 words unless asked for more. Include a short bullet list when useful.`;
+
+  const messages = [
+    { role: "system", content: system },
+    { role: "user", content: `Question: ${q}\n\nContext:\n` +
+        ctx.map((d,i)=>`[${i+1}] ${d.title}: ${d.text}`).join("\n") }
+  ];
+
+  document.querySelector("#out").textContent = "Thinking…";
+  document.querySelector("#sources").innerHTML = "";
+
+  try{
+    const res = await fetch(API, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ messages })
+    });
+    const data = await res.json();
+    document.querySelector("#out").textContent = data.text || "No response.";
+
+    // Show sources used
+    const srcHtml = ctx.map((d,i)=>`<div class="src"><strong>[${i+1}] ${d.title}</strong><br>${d.text}</div>`).join("");
+    document.querySelector("#sources").innerHTML = "<h3>Sources</h3>" + srcHtml;
+
+  } catch (e){
+    document.querySelector("#out").textContent = "Error contacting the AI endpoint. Check your Worker URL.";
+  }
+}
+
+document.querySelector("#ask").onclick = ask;
+document.querySelector("#q").addEventListener("keydown", e => e.key === "Enter" && ask());
+</script>
 </body>
 </html>
