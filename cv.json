@@ -2,16 +2,91 @@
   {
     "id": "summary",
     "title": "Professional Summary",
-    "text": "Data scientist with experience in Python, machine learning, and AI."
+    "text": "Senior Data Analyst at Lloyds Banking Group (2013–present) with 5 years in Retail and 7 years in Commercial Banking. Broad experience in customer financial activity, behavioural patterns, and data compliance to support data-driven decision making."
+  },
+
+  {
+    "id": "exp_lbg_overview",
+    "title": "Lloyds Banking Group — Senior Data Analyst (Aug 2013–present)",
+    "text": "Retail Banking (5y) and Commercial Banking (7y). Focus on analytics, automation, data compliance, and stakeholder-facing insights across COO, Group Transformation, CDO, and Retail/Commercial teams."
   },
   {
-    "id": "exp_1",
-    "title": "MI Manager",
-    "text": "Managed a team of 3 people. Stack: Microsoft Access, Microsoft Excel."
+    "id": "exp_lbg_2024_rectification",
+    "title": "Rectification & Remediation Team, BCB, COO (2024)",
+    "text": "Led data strategy for a material event, calculating overdraft margin rates for 20k+ customers using a bespoke methodology; recognised by senior management. Identified automation opportunities including NLP techniques. Appointed Google Cloud Platform (GCP) champion supporting cloud strategy. Coached data team members, leveraging MSc learnings."
   },
   {
-    "id": "skills",
-    "title": "Skills",
-    "text": "Python, SQL, Teradata SQL, GitHub."
+    "id": "exp_lbg_2020_cbbt",
+    "title": "Commercial Banking & Business Transformation (CBBT), Group Transformation (2020)",
+    "text": "Led data approach to a client segmentation project; commended by senior management. Built an SQL pricing model to analyse change in financial position across all commercial customers during segmentation; model remains in active use."
+  },
+  {
+    "id": "exp_lbg_2017_cdo",
+    "title": "Group Transformation, Chief Data Office (2017)",
+    "text": "Created data pipelines for a customer journey project using Teradata SQL, Oracle, SAS, collaborating with Black Horse and Lex Autolease. Built a Tableau dashboard used by senior management. Oversaw an Excel VBA scheduler running 100+ reports daily; automated manual Excel reports sourcing data from GDW via Teradata SQL. Coached graduate apprentices on systems, GDW tables and LBG processes (designed Excel VBA tasks for new starters). Used Python to manipulate CSVs for pipelines and transformations. Recommended and implemented a process for Tableau to link directly to SQL Server tables/views; presented to senior management. Experienced in Agile practices."
+  },
+  {
+    "id": "exp_lbg_2017_rbb",
+    "title": "Retail Business Banking (2017)",
+    "text": "Developed compliance reporting to track customer APR distribution, aligning with CMA requirements on fair advertised rates. Designed an Excel workflow tool to automate APR calculations for loans, improving speed and accuracy."
+  },
+  {
+    "id": "exp_lbg_2015_dataservices",
+    "title": "Data Services, Commercial Banking (2015)",
+    "text": "Built an automated Teradata SQL tool to analyse customer turnover and flag abnormal fluctuations to identify potential risks. Created and documented a process to identify all products belonging to a customer across GDW and legacy systems."
+  },
+  {
+    "id": "exp_lbg_2013_retail",
+    "title": "Retail (2013)",
+    "text": "Designed and developed a Microsoft Access database for private banking advisors to manage Wealth Management advisor clients."
+  },
+
+  {
+    "id": "exp_rbs_2008_2013",
+    "title": "Royal Bank of Scotland — MI Analyst (Sept 2008–Jun 2013)",
+    "text": "Developed databases and reports within the Commercial MI department. Automated reporting using Microsoft Access and Excel VBA, saving ~3 hours per week. Awarded an RBS Director’s Award (2012) for a Microsoft Access workflow solution."
+  },
+
+  {
+    "id": "edu_bristol_msc_2025",
+    "title": "University of Bristol — MSc Data Science (2025, grade pending)",
+    "text": "Dissertation: Leveraging Language Models for Temporal Event Detection and Timeline Summarisation from Natural Disaster Incidents. Techniques: Sentence-BERT (SBERT), fine-tuned HDBSCAN for event detection; fine-tuned BART, T5, FLAN-T5, and PEGASUS for summarisation. Metrics: DBCV (clustering), BLEU and ROUGE (summarisation). Released a compact, fine-tuned 139M-parameter summarisation model. Additional distinctions: critique of “Ethical, political and epistemic implications of machine learning (mis)information classification”; Visualising UK Migration/Demographics/Economic Change since 2011 (Tableau dashboard + storyboard; PCA/LDA; Munzner model justification); Emotion classification in Tweets with neural networks; Biomarker prediction for cancerous genes (with Nottingham Trent University); Architecture design of an auto-scaling app on AWS (69%)."
+  },
+  {
+    "id": "edu_york_pgcert_2021",
+    "title": "University of York — PGCert Financial Mathematics (2021)",
+    "text": "Topics: probability theory, stochastic processes; time-value financial models, derivatives, No-Arbitrage Principle (NAP), pricing and hedging; diversification, optimisation schemes, Value at Risk (VaR)."
+  },
+  {
+    "id": "edu_ucd_profdip_2019",
+    "title": "University College Dublin — ProfDip Data Analytics (2019)",
+    "text": "Unsupervised and supervised learning; probability, hypothesis testing, statistical inference, linear regression; probability distributions, likelihood, Bayesian methods."
+  },
+  {
+    "id": "edu_plymouth_bsc_2005",
+    "title": "University of Plymouth — BSc (Hons) Computing Informatics, 2:1 (2005)",
+    "text": "Dissertation: SQL Server database with C# interface for a local business. Developed a multimedia application using C++ and DirectX 9 (distinction)."
+  },
+
+  {
+    "id": "skills_technical",
+    "title": "Technical Skills",
+    "text": "Python (Pandas, NumPy, NLTK, spaCy, PyTorch, matplotlib); Visualisation (Tableau, Power BI, Munzner model framework); SQL (Teradata, MySQL, NoSQL); AWS (EC2, S3, RDS, Lambda, ELB); NLP pipeline (data wrangling, pre-processing, POS tagging, NER, topic modelling, model evaluation); Pre-trained LMs (T5, FLAN-T5, PEGASUS, BART, BERT, SBERT) for semantic similarity, clustering, and downstream NLP tasks; Fine-tuning (SFT, RLHF); Evaluation metrics (BLEU, ROUGE) for summarisation; Data ethics (GDPR, EU Ethics Guidelines for Trustworthy AI, explainable AI)."
+  },
+
+  {
+    "id": "additional_editor_2025",
+    "title": "Editor — University of Bristol 6th Student Research Journal (2025)",
+    "text": "Served as an editor for the University of Bristol Student Research Journal."
+  },
+  {
+    "id": "additional_mentor_2025",
+    "title": "Mentor — IntoUniversity (2025)",
+    "text": "Supported academic development, university preparation, and confidence building for students aged 11–17."
+  },
+  {
+    "id": "additional_awsa_2024",
+    "title": "AWS Academy Cloud Foundations (2024)",
+    "text": "Completed AWS Academy Cloud Foundations."
   }
 ]
