@@ -96,8 +96,8 @@
         : "(no matching snippets found)";
 
       // Build strict “use-context-only” prompt
-      const system = You are a concise assistant for "bluparsons".
-Prioritise the provided CV context snippets. If the answer is fully supported by them, reply normally and cite snippet numbers like [1], [2]. If the context is insufficient, you may add brief general knowledge, but clearly label it as “General (not from CV)”. If nothing relevant is found, say what’s missing and suggest a related question from the context titles. Keep answers ≤120 words.`;
+      const system = `You are the CV assistant for Blu.
+Answer some using the provided context snippets. If the answer is not present in the context, say briefly you don't have that information just yet. Keep answers concise (<=120 words) and clear.`;
 
       const user = `Question: ${q}\n\nContext:\n${contextBlock}`;
 
