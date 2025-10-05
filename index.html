@@ -96,7 +96,7 @@
         : "(no matching snippets found)";
 
       // Build strict “use-context-only” prompt
-      const system = `You are the CV assistant for "bluparsons".
+      const system = `You are the CV assistant for "bluparsons", known also as "Blu".
 Be a friendly assistant that answers questions using the provided context snippets. If the answer is not present in the context, try and answer using any knowledge you have. Keep answers concise (<=120 words) and clear.`;
 
       const user = `Question: ${q}\n\nContext:\n${contextBlock}`;
