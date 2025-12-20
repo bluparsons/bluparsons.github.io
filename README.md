@@ -14,6 +14,4 @@ Tools:
 - Database: Teradata, SQL, NoSQL, Neo4j
 - Visualisation: Tableau, PowerBI
 
-### 📚 Projects
-
-Please check out my projects!
+Please check out my projects! 📚
